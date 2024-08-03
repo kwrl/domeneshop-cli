@@ -15,8 +15,8 @@ var clientSecret = Environment.GetEnvironmentVariable("DOMENESHOP_CLIENT_SECRET"
 services
     .AddSingleton(new DomeneshopOptions
     {
-        ClientId = clientId,
-        ClientSecret = clientSecret 
+        ClientId = clientId.Trim(),
+        ClientSecret = clientSecret.Trim()
     })
     .AddSingleton<IDomeneShopClient, DomeneshopClient>()
     .AddSingleton<IDnsRecordService, DnsRecordService>();
