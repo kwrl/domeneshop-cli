@@ -26,4 +26,6 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: itsyaboy/domeneshop-cli:latest
+        tags: |
+          itsyaboy/domeneshop-cli:latest
+          itsyaboy/domeneshop-cli:${{github.run_number}}
