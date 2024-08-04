@@ -5,7 +5,7 @@ namespace DomeneShop.CLI.Mapping;
 
 public static class Mappings
 {
-    public static DnsRecord ToDto(this FullRecord record)
+    public static DnsRecord ToDto(this Record record)
     {
         var dto = new DnsRecord(
             type: record.Type,

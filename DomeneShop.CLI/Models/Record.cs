@@ -2,7 +2,7 @@ using Abstractions.Integrations.Domeneshop;
 
 namespace DomeneShop.CLI.Models;
 
-public record FullRecord(
+public record Record(
     int Id,
     string Host,
     string Data,

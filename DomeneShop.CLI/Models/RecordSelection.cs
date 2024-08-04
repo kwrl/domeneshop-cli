@@ -3,7 +3,7 @@ using Abstractions.Integrations.Domeneshop;
 
 namespace DomeneShop.CLI.Models;
 
-public record FullRecordQuery(
+public record RecordSelection(
     int? Id,
     DnsRecordType? Type,
     string? Host,
@@ -13,7 +13,7 @@ public record FullRecordQuery(
     int? TimeToLive
 )
 {
-    public bool Matches(FullRecord record)
+    public bool Matches(Record record)
     {
         if (Id.HasValue && record.Id != Id)
         {

@@ -1,8 +1,5 @@
 ﻿using System.CommandLine;
-using System.Globalization;
 using Abstractions.Integrations.Domeneshop;
-using CsvHelper;
-using CsvHelper.Configuration;
 using DomeneShop.CLI;
 using DomeneShop.CLI.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,17 +10,26 @@ var clientId = Environment.GetEnvironmentVariable("DOMENESHOP_CLIENT_ID") ?? thr
 var clientSecret = Environment.GetEnvironmentVariable("DOMENESHOP_CLIENT_SECRET") ?? throw new Exception("DOMENESHOP_CLIENT_SECRET must be set");
 
 services
+    .AddHttpClient<IPublicIpV4AddressResolver, PublicIpV4AddressResolver>();
+
+services
     .AddSingleton(new DomeneshopOptions
     {
         ClientId = clientId.Trim(),
         ClientSecret = clientSecret.Trim()
     })
     .AddSingleton<IDomeneShopClient, DomeneshopClient>()
-    .AddSingleton<IDnsRecordService, DnsRecordService>();
+    .AddSingleton<IRecordSelector, RecordSelector>()
+    .AddSingleton<IRecordTransformer, RecordTransformer>()
+    .AddSingleton<IRecordPrinter, CsvRecordPrinter>()
+    .AddSingleton<IRecordSaver, RecordSaver>();
 
 var serviceProvider = services.BuildServiceProvider();
 
-var recordService = serviceProvider.GetRequiredService<IDnsRecordService>();
+var selector = serviceProvider.GetRequiredService<IRecordSelector>();
+var transformer = serviceProvider.GetRequiredService<IRecordTransformer>();
+var saver = serviceProvider.GetRequiredService<IRecordSaver>();
+var printer = serviceProvider.GetRequiredService<IRecordPrinter>();
 
 var domainIdOption = new Option<int?>("--domain-id", "Filter by domain ID");
 var domainNameOption = new Option<string?>("--domain-name", "Filter by domain name");
@@ -32,7 +38,6 @@ var recordTypeOption = new Option<DnsRecordType?>("--type", "Filter by record ty
 var recordHostOption = new Option<string?>("--host", "Filter by record host");
 var recordDataOption = new Option<string?>("--data", "Filter by record data");
 var timeToLiveOption = new Option<int?>("--time-to-live", "Filter by time to live");
-var includeHeaderOption = new Option<bool>("--include-header", "Include header in output");
 
 var queryBinder = new FullRecordQueryBinder(
     domainIdOption,
@@ -56,7 +61,7 @@ var mutationBinder = new FullRecordMutationBinder(
     setTimeToLiveOption
 );
 
-var mutateCommand = new Command("mutate", "Mutate selected DNS records")
+var saveCommand = new Command("save", "Save transformed DNS records")
 {
     setTypeOption,
     setHostOption,
@@ -64,8 +69,31 @@ var mutateCommand = new Command("mutate", "Mutate selected DNS records")
     setTimeToLiveOption
 };
 
-mutateCommand.SetHandler(
-    (query, mutation) => recordService.UpdateAsync(query, mutation),
+saveCommand.SetHandler(async (query, mutation) =>
+    {
+        var records = await selector.SelectAsync(query);
+        var transformedRecords = await transformer.TransformAsync(records, mutation);
+        await saver.SaveAsync(transformedRecords);
+    },
+    queryBinder,
+    mutationBinder
+);
+
+var transformCommand = new Command("transform", "Transform selected DNS records")
+{
+    setTypeOption,
+    setHostOption,
+    setDataOption,
+    setTimeToLiveOption,
+    saveCommand
+};
+
+transformCommand.SetHandler(async (query, mutation) =>
+    {
+        var records = await selector.SelectAsync(query);
+        var transformedRecords = await transformer.TransformAsync(records, mutation);
+        await printer.PrintAsync(transformedRecords);
+    },
     queryBinder,
     mutationBinder
 );
@@ -79,27 +107,17 @@ var selectCommand = new Command("select", "Select DNS records")
     recordHostOption,
     recordDataOption,
     timeToLiveOption,
-    includeHeaderOption,
-    mutateCommand
+    transformCommand
 };
 
 selectCommand.SetHandler(async (
-        recordQuery,
-        includeHeader
+        recordQuery
     ) =>
     {
-        var records = await recordService.SelectAsync(recordQuery);
-
-        await using var writer = new StreamWriter(Console.OpenStandardOutput());
-        await using var csvWriter = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            HasHeaderRecord = includeHeader
-        });
-
-        await csvWriter.WriteRecordsAsync(records);
+        var records = await selector.SelectAsync(recordQuery);
+        await printer.PrintAsync(records);
     },
-    queryBinder,
-    includeHeaderOption
+    queryBinder
 );
 
 

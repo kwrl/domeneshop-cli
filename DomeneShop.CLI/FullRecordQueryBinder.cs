@@ -8,9 +8,9 @@ namespace DomeneShop.CLI;
 public class FullRecordQueryBinder(Option<int?> domainIdOption, Option<string?> domainNameOption,
         Option<int?> recordIdOption, Option<DnsRecordType?> recordTypeOption, Option<string?> recordHostOption,
         Option<string?> recordDataOption, Option<int?> timeToLiveOption)
-    : BinderBase<FullRecordQuery>
+    : BinderBase<RecordSelection>
 {
-    protected override FullRecordQuery GetBoundValue(BindingContext bindingContext)
+    protected override RecordSelection GetBoundValue(BindingContext bindingContext)
     {
         var domainId = bindingContext.ParseResult.GetValueForOption(domainIdOption);
         var domainName = bindingContext.ParseResult.GetValueForOption(domainNameOption);
@@ -20,7 +20,7 @@ public class FullRecordQueryBinder(Option<int?> domainIdOption, Option<string?> 
         var recordData = bindingContext.ParseResult.GetValueForOption(recordDataOption);
         var timeToLive = bindingContext.ParseResult.GetValueForOption(timeToLiveOption);
         
-        return new FullRecordQuery(
+        return new RecordSelection(
             Id: recordId,
             Type: recordType,
             Host: recordHost,

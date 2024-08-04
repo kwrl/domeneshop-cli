@@ -5,7 +5,7 @@ using DomeneShop.CLI.Models;
 
 namespace DomeneShop.CLI;
 
-public class FullRecordMutationBinder : BinderBase<FullRecordMutation>
+public class FullRecordMutationBinder : BinderBase<RecordTransform>
 {
     private readonly Option<string?> _hostOption;
     private readonly Option<string?> _dataOption;
@@ -25,13 +25,13 @@ public class FullRecordMutationBinder : BinderBase<FullRecordMutation>
         _timeToLiveOption = timeToLiveOption;
     }
 
-    protected override FullRecordMutation GetBoundValue(BindingContext bindingContext)
+    protected override RecordTransform GetBoundValue(BindingContext bindingContext)
     {
         var host = bindingContext.ParseResult.GetValueForOption(_hostOption);
         var data = bindingContext.ParseResult.GetValueForOption(_dataOption);
         var type = bindingContext.ParseResult.GetValueForOption(_typeOption);
         var timeToLive = bindingContext.ParseResult.GetValueForOption(_timeToLiveOption);
 
-        return new FullRecordMutation(host, data, type, timeToLive);
+        return new RecordTransform(host, data, type, timeToLive);
     }
 }
